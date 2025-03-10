@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morse Code Trainer</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .container {
+            width: 768px;
+            max-height: 1024px;
+            background: linear-gradient(135deg, #2c2c2c, #252525);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            overflow-y: auto;
+            color: #fff;
+        }
+        h1 {
+            font-size: 28px;
+            text-align: center;
+            margin: 0 0 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .mode-section, .practice-section, .reference-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #333;
+            border-radius: 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .mode-buttons, .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+        .char-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+        button {
+            background: #3a3a3a;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: #4a4a4a;
+            transform: translateY(-1px);
+        }
+        button.active {
+            background: #007aff;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #tapButton {
+            padding: 20px 40px;
+            font-size: 18px;
+            background: #555;
+        }
+        #tapButton:active {
+            background: #007aff;
+        }
+        #clearBtn {
+            background: #d9534f;
+        }
+        #clearBtn:hover {
+            background: #c9302c;
+        }
+        #morseDisplay {
+            font-size: 36px;
+            color: #fff;
+            text-align: center;
+            font-family: monospace;
+            margin: 20px 0;
+            padding: 15px;
+            background: #292929;
+            border-radius: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #inputAnswer {
+            width: 100%;
+            max-width: 250px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #404040;
+            color: #fff;
+            margin: 0 auto 15px;
+            display: block;
+            font-size: 16px;
+        }
+        #feedback {
+            text-align: center;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        #feedback.correct { background: rgba(0,255,0,0.1); color: #0f0; }
+        #feedback.wrong { background: rgba(255,0,0,0.1); color: #f00; }
+        #progress {
+            text-align: center;
+            font-size: 14px;
+            color: #ccc;
+            margin-top: 15px;
+        }
+        .reference-section {
+            font-size: 12px;
+            column-count: 3;
+            background: #333;
+        }
+        .reference-section h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Morse Code Trainer</h1>
+        
+        <div class="mode-section">
+            <div class="mode-buttons">
+                <button onclick="startMode('learn')">Learn</button>
+                <button onclick="startMode('practice')">Practice</button>
+                <button onclick="startMode('test')">Test</button>
+                <button onclick="startMode('words')">Words</button>
+                <button onclick="startMode('tap')">Tap</button>
+            </div>
+            <div class="char-buttons" id="charButtons" style="display: none;"></div>
+        </div>
+
+        <div class="practice-section" id="practiceArea" style="display: none;">
+            <div id="morseDisplay"></div>
+            <input type="text" id="inputAnswer" placeholder="Type your answer">
+            <div class="control-buttons" id="controlButtons">
+                <button onclick="checkAnswer()" id="submitBtn">Submit</button>
+                <button onclick="playMorse()" id="playBtn">Play</button>
+                <button onclick="showHint()" id="hintBtn">Hint</button>
+                <button onclick="nextExercise()" id="nextBtn">Next</button>
+            </div>
+            <div class="control-buttons" id="tapControls" style="display: none;">
+                <button id="tapButton">Tap Here</button>
+                <button onclick="clearTaps()" id="clearBtn">Clear</button>
+            </div>
+            <div id="feedback"></div>
+            <div id="progress"></div>
+        </div>
+
+        <div class="reference-section">
+            <h3>Morse Code Reference</h3>
+            <div id="morseReference"></div>
+        </div>
+    </div>
+
+    <script>
+        const morseCode = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.',
+            'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---',
+            'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---',
+            'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-',
+            'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--',
+            'Z': '--..', '0': '-----', '1': '.----', '2': '..---', '3': '...--',
+            '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..',
+            '9': '----.'
+        };
+
+        const reverseMorse = Object.fromEntries(Object.entries(morseCode).map(([k, v]) => [v, k]));
+        const commonWords = ['AT', 'TO', 'IN', 'CAT', 'DOG', 'YES', 'NO', 'SOS', 'CQ', 'HI'];
+        let currentChar, currentMode, lessonIndex = 0, correctCount = 0, totalCount = 0;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let currentOscillators = [];
+        const structuredLessons = [
+            ['E', 'T'],
+            ['A', 'I', 'N', 'M'],
+            ['R', 'S', 'H', 'D', 'L'],
+            ['U', 'W', 'F', 'G', 'O']
+        ];
+        const CHAR_SPEED = 20;
+        const UNIT = 1200 / CHAR_SPEED; // 60ms at 20 WPM
+        let tapStart, currentTaps = '', wordTaps = [], lastTapTime;
+
+        // UI Elements
+        const practiceArea = document.getElementById('practiceArea');
+        const charButtonsDiv = document.getElementById('charButtons');
+        const morseDisplay = document.getElementById('morseDisplay');
+        const inputAnswer = document.getElementById('inputAnswer');
+        const feedback = document.getElementById('feedback');
+        const progress = document.getElementById('progress');
+        const submitBtn = document.getElementById('submitBtn');
+        const playBtn = document.getElementById('playBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const controlButtons = document.getElementById('controlButtons');
+        const tapControls = document.getElementById('tapControls');
+        const tapButton = document.getElementById('tapButton');
+
+        // Populate reference and character buttons
+        const referenceDiv = document.getElementById('morseReference');
+        for (let char in morseCode) {
+            referenceDiv.innerHTML += `${char}: ${morseCode[char]}<br>`;
+            charButtonsDiv.innerHTML += `<button onclick="selectChar('${char}')">${char}</button>`;
+        }
+
+        function startMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-buttons button').forEach(btn => 
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === mode));
+            practiceArea.style.display = 'block';
+            lessonIndex = 0;
+            correctCount = 0;
+            totalCount = 0;
+            updateProgress();
+
+            charButtonsDiv.style.display = mode === 'learn' ? 'grid' : 'none';
+            inputAnswer.style.display = mode === 'learn' || mode === 'tap' ? 'none' : 'block';
+            controlButtons.style.display = mode === 'tap' ? 'none' : 'flex';
+            tapControls.style.display = mode === 'tap' ? 'flex' : 'none';
+            hintBtn.disabled = mode === 'test';
+            playBtn.disabled = mode === 'test' && totalCount === 0;
+
+            if (mode === 'tap') {
+                resetTapMode();
+            } else {
+                nextExercise();
+            }
+        }
+
+        function selectChar(char) {
+            currentChar = char;
+            morseDisplay.textContent = morseCode[char];
+            feedback.textContent = `Learning: ${char}`;
+            feedback.className = '';
+            playMorse();
+        }
+
+        function getRandomChar() {
+            if (currentMode === 'practice' && lessonIndex < structuredLessons.length) {
+                const lessonChars = structuredLessons[lessonIndex];
+                return lessonChars[Math.floor(Math.random() * lessonChars.length)];
+            } else if (currentMode === 'words') {
+                return commonWords[Math.floor(Math.random() * commonWords.length)];
+            }
+            const chars = Object.keys(morseCode);
+            return chars[Math.floor(Math.random() * chars.length)];
+        }
+
+        function nextExercise() {
+            stopCurrentAudio();
+            currentChar = getRandomChar();
+            morseDisplay.textContent = currentMode === 'words' ? 
+                currentChar.split('').map(c => morseCode[c]).join(' / ') : morseCode[currentChar];
+            inputAnswer.value = '';
+            feedback.textContent = '';
+            feedback.className = '';
+            playBtn.disabled = currentMode === 'test';
+            if (currentMode !== 'test') playMorse();
+        }
+
+        function stopCurrentAudio() {
+            currentOscillators.forEach(osc => {
+                osc.stop();
+                osc.disconnect();
+            });
+            currentOscillators = [];
+        }
+
+        function playMorse() {
+            stopCurrentAudio();
+            const pattern = currentMode === 'words' ? 
+                currentChar.split('').map(c => morseCode[c]).join(' ') : morseCode[currentChar];
+            let time = 0;
+
+            for (let symbol of pattern) {
+                if (symbol === ' ') { time += UNIT * 7; continue; }
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 600;
+                oscillator.connect(audioCtx.destination);
+
+                if (symbol === '.') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT) / 1000);
+                    time += UNIT * 2;
+                } else if (symbol === '-') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT * 3) / 1000);
+                    time += UNIT * 4;
+                }
+                currentOscillators.push(oscillator);
+            }
+            setTimeout(() => currentOscillators = [], time);
+        }
+
+        function checkAnswer() {
+            const answer = inputAnswer.value.toUpperCase();
+            totalCount++;
+            if (answer === currentChar) {
+                correctCount++;
+                feedback.textContent = 'Correct! ✓';
+                feedback.className = 'correct';
+                if (currentMode === 'practice' && correctCount % 5 === 0 && lessonIndex < structuredLessons.length - 1) {
+                    lessonIndex++;
+                    feedback.textContent += ` Advancing to Lesson ${lessonIndex + 1}!`;
+                }
+            } else {
+                feedback.textContent = `Wrong. It's ${currentMode === 'test' ? '[hidden]' : currentChar}`;
+                feedback.className = 'wrong';
+            }
+            updateProgress();
+            playBtn.disabled = false;
+            if (currentMode !== 'learn') setTimeout(nextExercise, 1000);
+        }
+
+        function showHint() {
+            if (currentMode !== 'test') {
+                feedback.textContent = `Hint: Starts with ${currentChar[0]}`;
+                feedback.className = '';
+            }
+        }
+
+        function updateProgress() {
+            const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+            progress.textContent = currentMode === 'tap' ? 
+                'Tap to send Morse code (short for dot, long for dash)' : 
+                `Score: ${correctCount}/${totalCount} (${accuracy}%) | Lesson: ${lessonIndex + 1}/${structuredLessons.length}`;
+        }
+
+        // Tap Mode Logic
+        function resetTapMode() {
+            currentTaps = '';
+            wordTaps = [];
+            lastTapTime = 0;
+            morseDisplay.textContent = '';
+            feedback.textContent = '';
+            feedback.className = '';
+            updateProgress();
+        }
+
+        function clearTaps() {
+            resetTapMode();
+        }
+
+        function updateTapDisplay() {
+            const letter = reverseMorse[currentTaps] || '';
+            morseDisplay.textContent = `${currentTaps} (${letter})`;
+            feedback.textContent = wordTaps.join('') + (letter ? letter : '');
+            if (currentTaps.length > 5) { // Reset if sequence too long (invalid)
+                currentTaps = '';
+                morseDisplay.textContent = '';
+            }
+        }
+
+        tapButton.addEventListener('mousedown', () => {
+            if (currentMode !== 'tap') return;
+            tapStart = Date.now();
+            playTapSound(true);
+        });
+
+        tapButton.addEventListener('mouseup', () => {
+            if (currentMode !== 'tap') return;
+            const duration = Date.now() - tapStart;
+            const now = Date.now();
+            playTapSound(false);
+
+            // Check for word gap
+            if (lastTapTime && now - lastTapTime > 1200 && currentTaps === '') {
+                wordTaps.push(' ');
+                feedback.textContent = wordTaps.join('');
+            } else if (lastTapTime && now - lastTapTime > 600 && currentTaps) {
+                const letter = reverseMorse[currentTaps] || '?';
+                wordTaps.push(letter);
+                currentTaps = '';
+            }
+
+            const symbol = duration > 200 ? '-' : '.'; // 200ms threshold for dash vs dot
+            currentTaps += symbol;
+            updateTapDisplay();
+            lastTapTime = now;
+        });
+
+        function playTapSound(start) {
+            stopCurrentAudio();
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 600;
+            oscillator.connect(audioCtx.destination);
+            if (start) {
+                oscillator.start();
+                currentOscillators.push(oscillator);
+            } else {
+                currentOscillators[0]?.stop();
+                currentOscillators = [];
+            }
+        }
+
+        inputAnswer.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !submitBtn.disabled) checkAnswer();
+        });
+    </script>
+</body>
+</html>
