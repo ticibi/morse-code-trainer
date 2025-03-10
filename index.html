@@ -2,61 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Morse Code Trainer</title>
     <style>
         body {
             background-color: #1a1a1a;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             justify-content: center;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #e0e0e0;
         }
         .container {
-            width: 768px;
-            max-height: 1024px;
+            width: 100%;
+            max-width: 900px;
             background: linear-gradient(135deg, #2c2c2c, #252525);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            overflow-y: auto;
-            color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background: #333;
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
         }
         h1 {
-            font-size: 28px;
+            font-size: clamp(20px, 4vw, 28px);
             text-align: center;
-            margin: 0 0 20px;
-            font-weight: 700;
-            color: #fff;
+            margin: 0 0 15px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        h3, h4 {
+            font-size: clamp(16px, 3vw, 20px);
+            text-align: center;
+            margin: 0 0 10px;
+            font-weight: 600;
+            color: #ffffff;
         }
         .mode-section, .practice-section, .reference-section {
-            margin-bottom: 25px;
-            padding: 20px;
+            padding: 15px;
             background: #333;
-            border-radius: 15px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
         }
-        .mode-buttons, .control-buttons {
+        .mode-section { display: none; }
+        .practice-section { flex-grow: 1; }
+        .control-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             justify-content: center;
         }
         .char-buttons {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
             gap: 8px;
-            margin-top: 15px;
+            margin-top: 10px;
         }
         button {
             background: #3a3a3a;
-            color: #fff;
+            color: #e0e0e0;
             border: none;
-            border-radius: 10px;
-            padding: 10px 20px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
+            font-size: clamp(12px, 2.5vw, 14px);
             cursor: pointer;
             transition: all 0.2s ease;
+            touch-action: manipulation;
+            flex: 1;
+            text-align: center;
         }
         button:hover {
             background: #4a4a4a;
@@ -71,26 +93,39 @@
             cursor: not-allowed;
         }
         #tapButton {
-            padding: 20px 40px;
-            font-size: 18px;
+            padding: clamp(12px, 4vw, 18px) clamp(25px, 8vw, 40px);
+            font-size: clamp(14px, 3.5vw, 18px);
             background: #555;
+            width: 100%;
+            max-width: 280px;
         }
         #tapButton:active {
+            background: #007aff;
+        }
+        #dotButton, #dashButton {
+            padding: clamp(12px, 4vw, 18px);
+            font-size: clamp(14px, 3.5vw, 18px);
+            background: #555;
+            width: 100%;
+            max-width: 100px;
+        }
+        #dotButton:active, #dashButton:active {
             background: #007aff;
         }
         #clearBtn { background: #d9534f; }
         #clearBtn:hover { background: #c9302c; }
         #pauseBtn.paused { background: #f0ad4e; }
+        #startAudioBtn { background: #5bc0de; }
         #morseDisplay {
-            font-size: 36px;
+            font-size: clamp(20px, 5vw, 36px);
             color: #fff;
             text-align: center;
             font-family: monospace;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 12px;
             background: #292929;
             border-radius: 10px;
-            min-height: 60px;
+            min-height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -98,54 +133,111 @@
         #inputAnswer {
             width: 100%;
             max-width: 250px;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid #444;
             background: #404040;
-            color: #fff;
-            margin: 0 auto 15px;
+            color: #e0e0e0;
+            margin: 0 auto 10px;
             display: block;
-            font-size: 16px;
+            font-size: clamp(14px, 2.5vw, 16px);
         }
         #feedback {
             text-align: center;
-            font-size: 16px;
-            padding: 10px;
+            font-size: clamp(12px, 2.5vw, 16px);
+            padding: 8px;
             border-radius: 8px;
             transition: background 0.3s;
         }
-        #feedback.correct { background: rgba(0,255,0,0.1); color: #0f0; }
-        #feedback.wrong { background: rgba(255,0,0,0.1); color: #f00; }
-        #progress {
+        #feedback.correct { background: rgba(0,255,0,0.15); color: #00ff00; }
+        #feedback.wrong { background: rgba(255,0,0,0.15); color: #ff5555; }
+        #progress, #history {
             text-align: center;
-            font-size: 14px;
-            color: #ccc;
-            margin-top: 15px;
-        }
-        #history {
-            font-size: 14px;
+            font-size: clamp(10px, 2vw, 14px);
             color: #bbb;
-            text-align: center;
-            margin-top: 15px;
-            max-height: 100px;
-            overflow-y: auto;
+            margin-top: 10px;
+        }
+        #history { max-height: 80px; overflow-y: auto; }
+        #letterSelectPanel {
+            margin-top: 10px;
+            padding: 10px;
+            background: #404040;
+            border-radius: 10px;
+            display: none;
+        }
+        #letterSelectPanel button {
+            padding: 5px 10px;
+            margin: 4px;
+            font-size: clamp(10px, 2vw, 12px);
         }
         .reference-section {
-            font-size: 12px;
-            column-count: 3;
             background: #333;
+            padding: 15px;
         }
-        .reference-section h3 {
-            margin: 0 0 10px;
-            font-size: 16px;
-            text-align: center;
+        .reference-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
         }
-        select {
-            padding: 8px;
-            border-radius: 8px;
+        .reference-numbers {
+            flex: 0 0 90px;
+        }
+        .reference-letters {
+            flex: 1;
+        }
+        .reference-letters-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+        .reference-numbers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 5px;
+        }
+        .reference-btn {
             background: #404040;
-            color: #fff;
-            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 5px;
+            text-align: left;
+            font-family: monospace;
+            font-size: clamp(11px, 2.2vw, 14px);
+        }
+        .reference-numbers .reference-btn {
+            padding: 5px;
+            font-size: clamp(9px, 1.8vw, 12px);
+        }
+        .dot { color: #00ff00; }
+        .dash { color: #00ffff; }
+        select {
+            background: #404040;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: clamp(6px, 1.5vw, 10px);
+            font-size: clamp(12px, 2.5vw, 14px);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23e0e0e0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 30px;
+        }
+        select:hover {
+            background-color: #4a4a4a;
+            border-color: #666;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .navbar { flex-direction: column; gap: 8px; padding: 8px; }
+            .control-buttons { flex-direction: column; align-items: center; gap: 8px; }
+            button { width: 100%; max-width: 180px; }
+            #tapButton, #dotButton, #dashButton { max-width: 180px; }
+            .reference-container { flex-direction: column; }
+            .reference-letters-grid { grid-template-columns: repeat(3, 1fr); }
+            .reference-numbers { flex: 1; }
+            select { width: 100%; max-width: 180px; }
         }
     </style>
 </head>
@@ -153,14 +245,15 @@
     <div class="container">
         <h1>Morse Code Trainer</h1>
         
-        <div class="mode-section">
-            <div class="mode-buttons">
-                <button onclick="startMode('learn')">Learn</button>
-                <button onclick="startMode('practice')">Practice</button>
-                <button onclick="startMode('test')">Test</button>
-                <button onclick="startMode('words')">Words</button>
-                <button onclick="startMode('tap')">Tap</button>
-            </div>
+        <div class="navbar">
+            <button onclick="startMode('tap')">Tap</button>
+            <button onclick="startMode('learn')">Learn</button>
+            <button onclick="startMode('practice')">Practice</button>
+            <button onclick="startMode('smart')">Smart Practice</button>
+            <button onclick="startMode('words')">Words</button>
+        </div>
+
+        <div class="mode-section" id="modeSection">
             <div class="char-buttons" id="charButtons" style="display: none;"></div>
         </div>
 
@@ -172,9 +265,12 @@
                 <button onclick="playMorse()" id="playBtn">Play</button>
                 <button onclick="showHint()" id="hintBtn">Hint</button>
                 <button onclick="nextExercise()" id="nextBtn">Next</button>
+                <button onclick="toggleLetterSelect()" id="selectBtn" style="display: none;">Select Letters</button>
             </div>
             <div class="control-buttons" id="tapControls" style="display: none;">
                 <button id="tapButton">Tap Here</button>
+                <button id="dotButton" onclick="addDot()">Dot</button>
+                <button id="dashButton" onclick="addDash()">Dash</button>
                 <button onclick="playTapped()" id="playBackBtn">Play Back</button>
                 <button onclick="togglePause()" id="pauseBtn">Pause</button>
                 <button onclick="clearTaps()" id="clearBtn">Clear</button>
@@ -184,6 +280,7 @@
                     <option value="10">10 WPM</option>
                 </select>
             </div>
+            <div id="letterSelectPanel"></div>
             <div id="feedback"></div>
             <div id="progress"></div>
             <div id="history"></div>
@@ -191,7 +288,16 @@
 
         <div class="reference-section">
             <h3>Morse Code Reference</h3>
-            <div id="morseReference"></div>
+            <div class="reference-container">
+                <div class="reference-numbers">
+                    <h4>Numbers</h4>
+                    <div class="reference-numbers-grid" id="numbersReference"></div>
+                </div>
+                <div class="reference-letters">
+                    <h4>Letters</h4>
+                    <div class="reference-letters-grid" id="lettersReference"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -208,9 +314,9 @@
         };
 
         const reverseMorse = Object.fromEntries(Object.entries(morseCode).map(([k, v]) => [v, k]));
-        const commonWords = ['AT', 'TO', 'IN', 'CAT', 'DOG', 'YES', 'NO', 'SOS', 'CQ', 'HI'];
+        const commonWords = ['YES', 'NO', 'HELLO', 'BYE', 'CAT', 'DOG', 'HOME', 'AT', 'TO', 'IN', 'SOS', 'CQ', 'HI'];
         let currentChar, currentMode, lessonIndex = 0, correctCount = 0, totalCount = 0;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx, audioInitialized = false;
         let currentOscillators = [];
         const structuredLessons = [
             ['E', 'T'],
@@ -219,9 +325,11 @@
             ['U', 'W', 'F', 'G', 'O']
         ];
         let tapStart, currentTaps = '', wordTaps = [], lastTapTime, isPaused = false, tapHistory = [];
-        let CHAR_SPEED = 20, UNIT = 1200 / CHAR_SPEED; // Default 20 WPM
+        let CHAR_SPEED = 20, UNIT = 1200 / CHAR_SPEED;
+        let smartWords = ['YES', 'NO', 'CAT', 'DOG'], smartLetters = {}, activeLetters = new Set('YESNOCATDG'.split(''));
 
         // UI Elements
+        const modeSection = document.getElementById('modeSection');
         const practiceArea = document.getElementById('practiceArea');
         const charButtonsDiv = document.getElementById('charButtons');
         const morseDisplay = document.getElementById('morseDisplay');
@@ -233,23 +341,61 @@
         const playBtn = document.getElementById('playBtn');
         const hintBtn = document.getElementById('hintBtn');
         const nextBtn = document.getElementById('nextBtn');
+        const selectBtn = document.getElementById('selectBtn');
+        const letterSelectPanel = document.getElementById('letterSelectPanel');
         const controlButtons = document.getElementById('controlButtons');
         const tapControls = document.getElementById('tapControls');
         const tapButton = document.getElementById('tapButton');
+        const dotButton = document.getElementById('dotButton');
+        const dashButton = document.getElementById('dashButton');
         const playBackBtn = document.getElementById('playBackBtn');
         const pauseBtn = document.getElementById('pauseBtn');
         const speedSelect = document.getElementById('speedSelect');
 
-        // Populate reference and character buttons
-        const referenceDiv = document.getElementById('morseReference');
+        // Populate reference table
+        const lettersReference = document.getElementById('lettersReference');
+        const numbersReference = document.getElementById('numbersReference');
         for (let char in morseCode) {
-            referenceDiv.innerHTML += `${char}: ${morseCode[char]}<br>`;
-            charButtonsDiv.innerHTML += `<button onclick="selectChar('${char}')">${char}</button>`;
+            const isNumber = /[0-9]/.test(char);
+            const target = isNumber ? numbersReference : lettersReference;
+            const code = morseCode[char].split('').map(s => 
+                `<span class="${s === '.' ? 'dot' : 'dash'}">${s}</span>`).join('');
+            target.innerHTML += `
+                <button class="reference-btn" onclick="playReference('${char}')">
+                    <strong>${char}</strong> ${code}
+                </button>`;
+        }
+
+        // Initialize smart letters tracking
+        for (let char of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+            smartLetters[char] = { correct: 0, incorrect: 0 };
+        }
+
+        function initAudio() {
+            if (!audioInitialized) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioInitialized = true;
+                const startBtn = document.createElement('button');
+                startBtn.id = 'startAudioBtn';
+                startBtn.textContent = 'Start Audio';
+                tapControls.appendChild(startBtn);
+                startBtn.addEventListener('click', () => {
+                    audioCtx.resume().then(() => {
+                        startBtn.remove();
+                        tapButton.disabled = false;
+                        dotButton.disabled = false;
+                        dashButton.disabled = false;
+                    });
+                });
+                tapButton.disabled = true;
+                dotButton.disabled = true;
+                dashButton.disabled = true;
+            }
         }
 
         function startMode(mode) {
             currentMode = mode;
-            document.querySelectorAll('.mode-buttons button').forEach(btn => 
+            document.querySelectorAll('.navbar button').forEach(btn => 
                 btn.classList.toggle('active', btn.textContent.toLowerCase() === mode));
             practiceArea.style.display = 'block';
             lessonIndex = 0;
@@ -257,16 +403,20 @@
             totalCount = 0;
             updateProgress();
 
+            modeSection.style.display = mode === 'learn' ? 'block' : 'none';
             charButtonsDiv.style.display = mode === 'learn' ? 'grid' : 'none';
             inputAnswer.style.display = mode === 'learn' || mode === 'tap' ? 'none' : 'block';
             controlButtons.style.display = mode === 'tap' ? 'none' : 'flex';
             tapControls.style.display = mode === 'tap' ? 'flex' : 'none';
+            selectBtn.style.display = mode === 'smart' ? 'inline-block' : 'none';
             hintBtn.disabled = mode === 'test';
             playBtn.disabled = mode === 'test' && totalCount === 0;
 
             if (mode === 'tap') {
+                initAudio();
                 resetTapMode();
             } else {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 nextExercise();
             }
         }
@@ -285,15 +435,22 @@
                 return lessonChars[Math.floor(Math.random() * lessonChars.length)];
             } else if (currentMode === 'words') {
                 return commonWords[Math.floor(Math.random() * commonWords.length)];
+            } else if (currentMode === 'smart') {
+                return getSmartWord();
             }
             const chars = Object.keys(morseCode);
             return chars[Math.floor(Math.random() * chars.length)];
         }
 
+        function getSmartWord() {
+            const word = smartWords[Math.floor(Math.random() * smartWords.length)];
+            return word;
+        }
+
         function nextExercise() {
             stopCurrentAudio();
             currentChar = getRandomChar();
-            morseDisplay.textContent = currentMode === 'words' ? 
+            morseDisplay.textContent = currentMode === 'words' || currentMode === 'smart' ? 
                 currentChar.split('').map(c => morseCode[c]).join(' / ') : morseCode[currentChar];
             inputAnswer.value = '';
             feedback.textContent = '';
@@ -311,13 +468,43 @@
         }
 
         function playMorse() {
+            if (!audioInitialized) return;
             stopCurrentAudio();
-            const pattern = currentMode === 'words' ? 
+            const pattern = currentMode === 'words' || currentMode === 'smart' ? 
                 currentChar.split('').map(c => morseCode[c]).join(' ') : morseCode[currentChar];
             let time = 0;
 
             for (let symbol of pattern) {
                 if (symbol === ' ') { time += UNIT * 7; continue; }
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 600;
+                oscillator.connect(audioCtx.destination);
+
+                if (symbol === '.') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT) / 1000);
+                    time += UNIT * 2;
+                } else if (symbol === '-') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT * 3) / 1000);
+                    time += UNIT * 4;
+                }
+                currentOscillators.push(oscillator);
+            }
+            setTimeout(() => currentOscillators = [], time);
+        }
+
+        function playReference(char) {
+            if (!audioInitialized) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioInitialized = true;
+            }
+            stopCurrentAudio();
+            const pattern = morseCode[char];
+            let time = 0;
+
+            for (let symbol of pattern) {
                 const oscillator = audioCtx.createOscillator();
                 oscillator.type = 'sine';
                 oscillator.frequency.value = 600;
@@ -344,6 +531,7 @@
                 correctCount++;
                 feedback.textContent = 'Correct! ✓';
                 feedback.className = 'correct';
+                if (currentMode === 'smart') updateSmartProgress(true);
                 if (currentMode === 'practice' && correctCount % 5 === 0 && lessonIndex < structuredLessons.length - 1) {
                     lessonIndex++;
                     feedback.textContent += ` Advancing to Lesson ${lessonIndex + 1}!`;
@@ -351,10 +539,57 @@
             } else {
                 feedback.textContent = `Wrong. It's ${currentMode === 'test' ? '[hidden]' : currentChar}`;
                 feedback.className = 'wrong';
+                if (currentMode === 'smart') updateSmartProgress(false);
             }
             updateProgress();
             playBtn.disabled = false;
             if (currentMode !== 'learn') setTimeout(nextExercise, 1000);
+        }
+
+        function updateSmartProgress(correct) {
+            for (let char of currentChar) {
+                if (correct) {
+                    smartLetters[char].correct++;
+                    if (smartLetters[char].correct >= 10 && activeLetters.size < 26) {
+                        activeLetters.delete(char);
+                        const newChar = Object.keys(smartLetters).find(c => !activeLetters.has(c) && smartLetters[c].correct < 10);
+                        if (newChar) activeLetters.add(newChar);
+                        updateSmartWords();
+                    }
+                } else {
+                    smartLetters[char].incorrect++;
+                }
+            }
+            updateLetterSelect();
+        }
+
+        function updateSmartWords() {
+            smartWords = commonWords.filter(word => 
+                word.split('').every(char => activeLetters.has(char)));
+        }
+
+        function toggleLetterSelect() {
+            letterSelectPanel.style.display = letterSelectPanel.style.display === 'none' ? 'block' : 'none';
+            updateLetterSelect();
+        }
+
+        function updateLetterSelect() {
+            letterSelectPanel.innerHTML = '';
+            for (let char in smartLetters) {
+                const btn = document.createElement('button');
+                btn.textContent = `${char} (${smartLetters[char].correct}/${smartLetters[char].incorrect})`;
+                btn.classList.toggle('active', activeLetters.has(char));
+                btn.onclick = () => {
+                    if (activeLetters.has(char)) {
+                        activeLetters.delete(char);
+                    } else if (activeLetters.size < 10) {
+                        activeLetters.add(char);
+                    }
+                    updateSmartWords();
+                    updateLetterSelect();
+                };
+                letterSelectPanel.appendChild(btn);
+            }
         }
 
         function showHint() {
@@ -368,7 +603,8 @@
             const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
             progress.textContent = currentMode === 'tap' ? 
                 'Tap to send Morse code (short for dot, long for dash)' : 
-                `Score: ${correctCount}/${totalCount} (${accuracy}%) | Lesson: ${lessonIndex + 1}/${structuredLessons.length}`;
+                `Score: ${correctCount}/${totalCount} (${accuracy}%) | ${currentMode === 'smart' ? 
+                    `Active Letters: ${activeLetters.size}` : `Lesson: ${lessonIndex + 1}/${structuredLessons.length}`}`;
         }
 
         // Tap Mode Logic
@@ -402,6 +638,7 @@
         }
 
         function playTapped() {
+            if (!audioInitialized) return;
             stopCurrentAudio();
             const pattern = wordTaps.map(char => char === ' ' ? ' ' : morseCode[char] || '').join(' ');
             let time = 0;
@@ -431,7 +668,9 @@
             isPaused = !isPaused;
             pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
             pauseBtn.classList.toggle('paused', isPaused);
-            tapButton.disabled = isPaused;
+            tapButton.disabled = isPaused || !audioInitialized;
+            dotButton.disabled = isPaused || !audioInitialized;
+            dashButton.disabled = isPaused || !audioInitialized;
         }
 
         function updateSpeed() {
@@ -443,14 +682,75 @@
             history.textContent = 'History: ' + (tapHistory.length ? tapHistory.join(' | ') : 'None');
         }
 
+        function addDot() {
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
+            const now = Date.now();
+            playTapSound(true, '.');
+            setTimeout(() => playTapSound(false), UNIT);
+
+            if (lastTapTime && now - lastTapTime > 1200 && currentTaps === '') {
+                wordTaps.push(' ');
+                feedback.textContent = wordTaps.join('');
+            } else if (lastTapTime && now - lastTapTime > 600 && currentTaps) {
+                const letter = reverseMorse[currentTaps] || '?';
+                wordTaps.push(letter);
+                currentTaps = '';
+                if (letter !== '?') tapHistory.push(wordTaps.join(''));
+                updateHistory();
+            }
+
+            currentTaps += '.';
+            updateTapDisplay();
+            lastTapTime = now;
+        }
+
+        function addDash() {
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
+            const now = Date.now();
+            playTapSound(true, '-');
+            setTimeout(() => playTapSound(false), UNIT * 3);
+
+            if (lastTapTime && now - lastTapTime > 1200 && currentTaps === '') {
+                wordTaps.push(' ');
+                feedback.textContent = wordTaps.join('');
+            } else if (lastTapTime && now - lastTapTime > 600 && currentTaps) {
+                const letter = reverseMorse[currentTaps] || '?';
+                wordTaps.push(letter);
+                currentTaps = '';
+                if (letter !== '?') tapHistory.push(wordTaps.join(''));
+                updateHistory();
+            }
+
+            currentTaps += '-';
+            updateTapDisplay();
+            lastTapTime = now;
+        }
+
         tapButton.addEventListener('mousedown', () => {
-            if (currentMode !== 'tap' || isPaused) return;
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
+            tapStart = Date.now();
+            playTapSound(true);
+        });
+
+        tapButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
             tapStart = Date.now();
             playTapSound(true);
         });
 
         tapButton.addEventListener('mouseup', () => {
-            if (currentMode !== 'tap' || isPaused) return;
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
+            handleTapEnd();
+        });
+
+        tapButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (currentMode !== 'tap' || isPaused || !audioInitialized) return;
+            handleTapEnd();
+        });
+
+        function handleTapEnd() {
             const duration = Date.now() - tapStart;
             const now = Date.now();
             playTapSound(false);
@@ -470,9 +770,10 @@
             currentTaps += symbol;
             updateTapDisplay();
             lastTapTime = now;
-        });
+        }
 
-        function playTapSound(start) {
+        function playTapSound(start, symbol) {
+            if (!audioInitialized) return;
             stopCurrentAudio();
             const oscillator = audioCtx.createOscillator();
             oscillator.type = 'sine';
