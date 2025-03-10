@@ -78,12 +78,9 @@
         #tapButton:active {
             background: #007aff;
         }
-        #clearBtn {
-            background: #d9534f;
-        }
-        #clearBtn:hover {
-            background: #c9302c;
-        }
+        #clearBtn { background: #d9534f; }
+        #clearBtn:hover { background: #c9302c; }
+        #pauseBtn.paused { background: #f0ad4e; }
         #morseDisplay {
             font-size: 36px;
             color: #fff;
@@ -125,6 +122,14 @@
             color: #ccc;
             margin-top: 15px;
         }
+        #history {
+            font-size: 14px;
+            color: #bbb;
+            text-align: center;
+            margin-top: 15px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
         .reference-section {
             font-size: 12px;
             column-count: 3;
@@ -134,6 +139,13 @@
             margin: 0 0 10px;
             font-size: 16px;
             text-align: center;
+        }
+        select {
+            padding: 8px;
+            border-radius: 8px;
+            background: #404040;
+            color: #fff;
+            border: 1px solid #444;
         }
     </style>
 </head>
@@ -163,10 +175,18 @@
             </div>
             <div class="control-buttons" id="tapControls" style="display: none;">
                 <button id="tapButton">Tap Here</button>
+                <button onclick="playTapped()" id="playBackBtn">Play Back</button>
+                <button onclick="togglePause()" id="pauseBtn">Pause</button>
                 <button onclick="clearTaps()" id="clearBtn">Clear</button>
+                <select id="speedSelect" onchange="updateSpeed()">
+                    <option value="20">20 WPM</option>
+                    <option value="15">15 WPM</option>
+                    <option value="10">10 WPM</option>
+                </select>
             </div>
             <div id="feedback"></div>
             <div id="progress"></div>
+            <div id="history"></div>
         </div>
 
         <div class="reference-section">
@@ -198,9 +218,8 @@
             ['R', 'S', 'H', 'D', 'L'],
             ['U', 'W', 'F', 'G', 'O']
         ];
-        const CHAR_SPEED = 20;
-        const UNIT = 1200 / CHAR_SPEED; // 60ms at 20 WPM
-        let tapStart, currentTaps = '', wordTaps = [], lastTapTime;
+        let tapStart, currentTaps = '', wordTaps = [], lastTapTime, isPaused = false, tapHistory = [];
+        let CHAR_SPEED = 20, UNIT = 1200 / CHAR_SPEED; // Default 20 WPM
 
         // UI Elements
         const practiceArea = document.getElementById('practiceArea');
@@ -209,6 +228,7 @@
         const inputAnswer = document.getElementById('inputAnswer');
         const feedback = document.getElementById('feedback');
         const progress = document.getElementById('progress');
+        const history = document.getElementById('history');
         const submitBtn = document.getElementById('submitBtn');
         const playBtn = document.getElementById('playBtn');
         const hintBtn = document.getElementById('hintBtn');
@@ -216,6 +236,9 @@
         const controlButtons = document.getElementById('controlButtons');
         const tapControls = document.getElementById('tapControls');
         const tapButton = document.getElementById('tapButton');
+        const playBackBtn = document.getElementById('playBackBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const speedSelect = document.getElementById('speedSelect');
 
         // Populate reference and character buttons
         const referenceDiv = document.getElementById('morseReference');
@@ -353,39 +376,85 @@
             currentTaps = '';
             wordTaps = [];
             lastTapTime = 0;
+            isPaused = false;
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.classList.remove('paused');
             morseDisplay.textContent = '';
             feedback.textContent = '';
             feedback.className = '';
             updateProgress();
+            updateHistory();
         }
 
         function clearTaps() {
             resetTapMode();
+            tapHistory = [];
         }
 
         function updateTapDisplay() {
             const letter = reverseMorse[currentTaps] || '';
             morseDisplay.textContent = `${currentTaps} (${letter})`;
             feedback.textContent = wordTaps.join('') + (letter ? letter : '');
-            if (currentTaps.length > 5) { // Reset if sequence too long (invalid)
+            if (currentTaps.length > 5) {
                 currentTaps = '';
                 morseDisplay.textContent = '';
             }
         }
 
+        function playTapped() {
+            stopCurrentAudio();
+            const pattern = wordTaps.map(char => char === ' ' ? ' ' : morseCode[char] || '').join(' ');
+            let time = 0;
+
+            for (let symbol of pattern) {
+                if (symbol === ' ') { time += UNIT * 7; continue; }
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 600;
+                oscillator.connect(audioCtx.destination);
+
+                if (symbol === '.') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT) / 1000);
+                    time += UNIT * 2;
+                } else if (symbol === '-') {
+                    oscillator.start(audioCtx.currentTime + time / 1000);
+                    oscillator.stop(audioCtx.currentTime + (time + UNIT * 3) / 1000);
+                    time += UNIT * 4;
+                }
+                currentOscillators.push(oscillator);
+            }
+            setTimeout(() => currentOscillators = [], time);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.classList.toggle('paused', isPaused);
+            tapButton.disabled = isPaused;
+        }
+
+        function updateSpeed() {
+            CHAR_SPEED = parseInt(speedSelect.value);
+            UNIT = 1200 / CHAR_SPEED;
+        }
+
+        function updateHistory() {
+            history.textContent = 'History: ' + (tapHistory.length ? tapHistory.join(' | ') : 'None');
+        }
+
         tapButton.addEventListener('mousedown', () => {
-            if (currentMode !== 'tap') return;
+            if (currentMode !== 'tap' || isPaused) return;
             tapStart = Date.now();
             playTapSound(true);
         });
 
         tapButton.addEventListener('mouseup', () => {
-            if (currentMode !== 'tap') return;
+            if (currentMode !== 'tap' || isPaused) return;
             const duration = Date.now() - tapStart;
             const now = Date.now();
             playTapSound(false);
 
-            // Check for word gap
             if (lastTapTime && now - lastTapTime > 1200 && currentTaps === '') {
                 wordTaps.push(' ');
                 feedback.textContent = wordTaps.join('');
@@ -393,6 +462,8 @@
                 const letter = reverseMorse[currentTaps] || '?';
                 wordTaps.push(letter);
                 currentTaps = '';
+                if (letter !== '?') tapHistory.push(wordTaps.join(''));
+                updateHistory();
             }
 
             const symbol = duration > 200 ? '-' : '.'; // 200ms threshold for dash vs dot
